@@ -120,3 +120,48 @@ bool ThingzHub::initializeWebSocket(const char* url) {
 
     return false;
 }
+
+// Public Float Version
+void ThingzHub::sendData(const char* name, float value) {
+    _sendBinaryFrame(THZ_FLOAT, name, (uint8_t*)&value, 4);
+}
+
+// Public Int Version
+void ThingzHub::sendData(const char* name, int value) {
+    _sendBinaryFrame(THZ_INT, name, (uint8_t*)&value, 4);
+}
+
+void ThingzHub::sendData(const char* name, bool value){
+    _sendBinaryFrame(THZ_BOOL, name, (uint8_t*)&value, 4);
+}
+void ThingzHub::sendData(const char* name, float x, float y, float z){
+    float arr[3] = {x, y, z};
+    _sendBinaryFrame(THZ_VEC3, name, (uint8_t*)arr, 12);
+}
+
+
+void ThingzHub::_sendBinaryFrame(uint8_t dataType, const char* name, const uint8_t* valBytes, uint8_t valLen) {
+    if (!_is_initialized || !_client->connected()) return;
+
+    uint8_t nameLen = strlen(name);
+    uint16_t payloadSize = 1 + 1 + nameLen + valLen;
+
+    // Send WS Header (Fin + Binary)
+    _client->write(0x82);
+    _client->write(payloadSize | 0x80); // Mask bit + Len
+    
+    uint8_t mask[4] = {0x01, 0x02, 0x03, 0x04}; // In prod, use random
+    _client->write(mask, 4);
+
+    // Header part of payload (Type + NameLen + Name)
+    uint8_t header[2] = {dataType, nameLen};
+    
+    // Mask and send header
+    for(int i=0; i<2; i++) _client->write(header[i] ^ mask[i % 4]);
+    for(int i=0; i<nameLen; i++) _client->write(name[i] ^ mask[(i+2) % 4]);
+    
+    // Mask and send actual data bytes
+    for(int i=0; i<valLen; i++) {
+        _client->write(valBytes[i] ^ mask[(i + 2 + nameLen) % 4]);
+    }
+}

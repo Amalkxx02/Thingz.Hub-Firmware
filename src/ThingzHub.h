@@ -29,6 +29,8 @@ class ThingzHub{
     bool _is_initialized = false;
     Client* _client;
 
+    void _sendBinaryFrame(uint8_t dataType, const char* name, const uint8_t* valBytes, uint8_t valLen);
+
     public:
         ThingzHub();
 
@@ -37,6 +39,11 @@ class ThingzHub{
         void registerDevice(const char* device_name,DEVICETYPE dType,DATATYPE vType);
 
         bool initializeWebSocket(const char* url);
+
+        void sendData(const char* resource_name, int value);
+        void sendData(const char* resource_name, float value);
+        void sendData(const char* resource_name, bool value);
+        void sendData(const char* resource_name, float x, float y, float z);
 };
 
 #endif
